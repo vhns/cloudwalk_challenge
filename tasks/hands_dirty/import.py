@@ -35,3 +35,4 @@ if __name__ == '__main__':
     for i in sys.argv[2:]:
         import_data(i, cur, name)
     con.commit()
+    con.close()
