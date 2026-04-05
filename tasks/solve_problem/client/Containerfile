@@ -1,0 +1,14 @@
+FROM docker.io/python:3.12-slim
+
+COPY ./client.py /app/main.py
+COPY ./requirements.txt /app/requirements.txt
+COPY ./transactions.csv /app/transactions.csv
+COPY ./transactions_auth_codes.csv /app/transactions_auth_codes.csv
+
+WORKDIR /app
+
+RUN pip install -r requirements.txt
+
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
+CMD ["/app/main.py"]

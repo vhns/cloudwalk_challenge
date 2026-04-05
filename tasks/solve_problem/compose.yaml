@@ -1,0 +1,32 @@
+version: '3'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Containerfile
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/test"]
+      timeout: 5s
+      retries: 3
+  api_gateway:
+    build:
+      context: ./api_gateway/
+      dockerfile: Containerfile
+    ports:
+      - 8000:8000
+    depends_on:
+      api:
+        condition: service_healthy
+  client:
+    build:
+      context: ./client/
+      dockerfile: Containerfile
+    depends_on:
+      - api_gateway
+  client_authcode:
+    build:
+      context: ./client_authcode/
+      dockerfile: Containerfile
+    depends_on:
+      - api_gateway

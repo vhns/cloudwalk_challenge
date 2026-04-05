@@ -37,7 +37,7 @@ app = FastAPI()
 def on_startup():
     create_db_and_tables()
 
-@app.post("/test")
+@app.get("/test")
 def test():
     return 'foobar'
 

@@ -6,15 +6,15 @@ from time import sleep
 from json import dumps
 
 file = None
-with open('transactions.csv') as f: file = f.read().splitlines()
+with open('transactions_auth_codes.csv') as f: file = f.read().splitlines()
 file.pop(0)
 reader = csv.reader(file,delimiter=',')
 f = [tuple(i) for i in reader]
 f_sorted = sorted(f, key=lambda x: x[0])
-f = [{"time_stamp": timestamp, "status": status, "count": int(count)} for timestamp, status, count in f_sorted]
+f = [{"time_stamp": timestamp, "auth_code": authcode, "count": int(count)} for timestamp, authcode, count in f_sorted]
 #print(f[0])
 
-url = 'http://localhost:8000/status'
+url = 'http://api_gateway:8000/authcodes'
 headers = {"Content-Type": "application/json"}
 i = len(f) - 1
 while i >= 0:
