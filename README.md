@@ -21,15 +21,12 @@ As to the direct questions:
 The data is very limited, but having the averages, yesterday's and today's values is somewhat
 helpful. In a real-world scenario having a timeseries that is longer would be more useful.
 
-### 2.In addition to the spreadsheet data, make a query in SQL and make a graphic of it and
-### try to explain the anomaly behavior you found.
+### 2.In addition to the spreadsheet data, make a query in SQL and make a graphic of it and try to explain the anomaly behavior you found.
 I assume that something might've gone wrong during the 15h-17h period. Either an infraestructure
 outage or some other sort of incident. With the graphed data and what's available, assesing
 more than this would be presumptious.
 
-### 3.In this csv you have the number of sales of POS by hour comparing the same
-### sales per hour from today, yesterday and the average of other days. So with 
-### this we can see the behavior from today and compare to other days.
+### 3.In this csv you have the number of sales of POS by hour comparing the same sales per hour from today, yesterday and the average of other days. So with this we can see the behavior from today and compare to other days.
 This wasn't exactly a question, more of an affirmation as to what was already assesed.
 
 ## Task 2
@@ -42,6 +39,7 @@ ingestion. The model we applied to detect anomalies was done through averages of
 and whatever falters too far from it gets us a warning in the front-end as well as the back-end.
 This could've been improved by using a timeseries and a ml model, but, due to time constraints,
 it was done like this. An example below of the image follows.
+![image](./tasks/solve_problem/api_gateway/shot.png)
 
 # Running this entire thing and testing it.
 In order to run this code, the easiest way is using docker. So simply:
