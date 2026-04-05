@@ -44,6 +44,7 @@ it was done like this. An example below of the image follows.
 # Running this entire thing and testing it.
 In order to run this code, the easiest way is using docker. So simply:
 ```
+cd tasks/solve_problem
 docker compose up
 ```
 and then open `http://localhost:8000` on a browser.
