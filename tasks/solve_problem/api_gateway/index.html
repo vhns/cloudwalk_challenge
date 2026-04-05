@@ -1,0 +1,224 @@
+<html>
+<head>
+    <title>Status Stream</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body { font-family: Arial; }
+
+        #container {
+            max-width: 1000px;
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            background: #111;
+            color: #0f0;
+            padding: 10px;
+            font-family: monospace;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: 120px 80px 60px 180px;
+            gap: 10px;
+            border-bottom: 1px solid #333;
+        }
+
+        .header {
+            font-weight: bold;
+            color: white;
+        }
+
+        #chartWrapper {
+            width: 1000px;
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+
+        canvas {
+            min-width: 1200px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Live Status Stream</h1>
+
+<div id="container"></div>
+
+<h2>Live Time Graph</h2>
+<div id="chartWrapper">
+    <canvas id="chart"></canvas>
+</div>
+
+<script>
+const alarm = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+const ws = new WebSocket("ws://localhost:8000/ws");
+const container = document.getElementById("container");
+
+const MAX_ROWS = 1000;
+const MAX_POINTS = 100;
+
+let rowCount = 0;
+let headersRendered = false;
+const keys = ["status", "count", "id", "time_stamp"];
+
+// 🔕 prevent alarm spam
+let lastAlarmTime = 0;
+const ALARM_COOLDOWN_MS = 3000;
+
+// ---- TABLE ----
+function createRow(data, isHeader = false) {
+    const row = document.createElement("div");
+    row.className = "row" + (isHeader ? " header" : "");
+
+    if (data.anomaly) {
+        row.style.backgroundColor = "#400";
+        row.style.color = "#fff";
+    }
+
+    keys.forEach(key => {
+        const cell = document.createElement("div");
+        cell.textContent = isHeader ? key : (data[key] ?? "");
+        row.appendChild(cell);
+    });
+
+    return row;
+}
+
+// ---- CHART ----
+const ctx = document.getElementById("chart").getContext("2d");
+
+const statusColors = {
+    approved: "lime",
+    denied: "red",
+    refunded: "orange",
+    reversed: "cyan",
+    failed: "gray",
+    backend_reversed: "purple"
+};
+
+// 🔥 improved structure
+// { timestamp: { values: {status: count}, anomaly: bool } }
+const grouped = {};
+const timestamps = [];
+
+const chart = new Chart(ctx, {
+    type: "line",
+    data: {
+        labels: [],
+        datasets: []
+    },
+    options: {
+        responsive: false,
+        animation: false,
+        scales: {
+            y: { beginAtZero: true }
+        }
+    }
+});
+
+function updateChart() {
+    chart.data.labels = [...timestamps];
+
+    const statuses = Object.keys(statusColors);
+
+    chart.data.datasets = statuses.map(status => {
+        return {
+            label: status,
+            borderColor: statusColors[status],
+            tension: 0.2,
+            data: timestamps.map(t => grouped[t]?.values?.[status] ?? 0),
+
+            // 🔴 highlight anomaly points
+            pointBackgroundColor: timestamps.map(t =>
+                grouped[t]?.anomaly ? "red" : statusColors[status]
+            )
+        };
+    });
+
+    chart.update();
+}
+
+function processGrouped(item) {
+    const t = item.time_stamp;
+
+    if (!grouped[t]) {
+        grouped[t] = {
+            values: {},
+            anomaly: false
+        };
+
+        timestamps.push(t);
+
+        // limit timestamps
+        if (timestamps.length > MAX_POINTS) {
+            const removed = timestamps.shift();
+            delete grouped[removed];
+        }
+    }
+
+    grouped[t].values[item.status] = item.count;
+
+    // 🔥 propagate anomaly to timestamp level
+    if (item.anomaly) {
+        grouped[t].anomaly = true;
+    }
+}
+
+// ---- WS ----
+ws.onmessage = function(event) {
+    try {
+        const data = JSON.parse(event.data);
+
+        let batchHasAnomaly = false;
+
+        data.forEach(item => {
+
+            // header
+            if (!headersRendered) {
+                container.appendChild(createRow(item, true));
+                headersRendered = true;
+            }
+
+            // table
+            const row = createRow(item);
+            container.appendChild(row);
+            rowCount++;
+
+            if (rowCount > MAX_ROWS) {
+                container.removeChild(container.children[1]);
+                rowCount--;
+            }
+
+            // chart
+            processGrouped(item);
+
+            // detect anomaly in batch
+            if (item.anomaly) {
+                batchHasAnomaly = true;
+                console.warn("ANOMALY:", item.reason);
+            }
+        });
+
+        // 🔔 play alarm once per batch (with cooldown)
+        const now = Date.now();
+        if (batchHasAnomaly && (now - lastAlarmTime > ALARM_COOLDOWN_MS)) {
+            alarm.play();
+            lastAlarmTime = now;
+        }
+
+        updateChart();
+
+        container.scrollTop = container.scrollHeight;
+
+    } catch (err) {
+        console.error("Invalid JSON:", event.data);
+    }
+};
+
+ws.onopen = () => console.log("Connected");
+</script>
+
+</body>
+</html>
